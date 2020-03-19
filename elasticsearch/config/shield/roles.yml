@@ -1,0 +1,5 @@
+admin:
+  cluster: all
+  indices:
+    '*':
+    privileges: all

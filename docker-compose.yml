@@ -1,0 +1,133 @@
+version: '3.4'
+
+services:
+
+  bot:
+    build:
+      context: ./bot
+    container_name: chatbot
+    restart: always
+    links:
+      - web
+      - postgres
+      - es01
+    depends_on:
+      - web
+      - postgres
+      - es01
+    networks:
+      - esnet
+      - pgnet
+    environment:
+      PG_HOST: $PG_HOST
+      PG_PORT: $POSTGRES_PORT
+      PG_DB: $POSTGRES_DB
+      PG_USER: $POSTGRES_USER
+      PG_PASS: $POSTGRES_PASS
+      ES_HOST: $ES_HOST
+      ES_PORT: $ELASTIC_PORT
+      ES_USER: $ES_USER
+      ES_PASS: $ES_PASS
+      API_TOKEN: $BOT_API_TOKEN
+
+  web:
+    build:
+      context: ./web_service
+      args:
+        PORT: $WEB_APP_PORT
+        HOST: $WEB_APP_HOST
+    container_name: chatbot_web
+    environment:
+      APP_HOST: $WEB_APP_HOST
+      APP_PORT: $WEB_APP_PORT
+      PG_HOST: $PG_HOST
+      PG_PORT: $POSTGRES_PORT
+      PG_DB: $POSTGRES_DB
+      PG_USER: $POSTGRES_USER
+      PG_PASS: $POSTGRES_PASS
+    ports:
+      - "$WEB_APP_HOST:$WEB_APP_PORT:$WEB_APP_PORT"
+    restart: always
+    networks:
+      - pgnet
+    links:
+      - postgres
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://$WEB_APP_HOST:$WEB_APP_PORT/healthCheck"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  es01:
+    build:
+      context: ./elasticsearch
+    container_name: es01
+    environment:
+      - node.name=es01
+      - discovery.seed_hosts=es02
+      - cluster.initial_master_nodes=es01,es02
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    restart: always
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata01:/usr/share/elasticsearch/data
+    ports:
+      - "$ELASTIC_HOST:$ELASTIC_PORT:$ELASTIC_EXTERNAL_PORT"
+    networks:
+      - esnet
+
+  es02:
+    build:
+      context: ./elasticsearch
+    container_name: es02
+    environment:
+      - node.name=es02
+      - discovery.seed_hosts=es01
+      - cluster.initial_master_nodes=es01,es02
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata02:/usr/share/elasticsearch/data
+    networks:
+      - esnet
+
+  postgres:
+    image: postgres:9.6
+    container_name: chatbot_postgres
+    environment:
+      POSTGRES_PASSWORD: $POSTGRES_PASS
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_DB: $POSTGRES_DB
+    ports:
+      - "$POSTGRES_HOST:$POSTGRES_PORT:$POSTGRES_EXTERNAL_PORT"
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pgnet
+
+volumes:
+  esdata01:
+    driver: local
+  esdata02:
+    driver: local
+
+networks:
+  esnet:
+  pgnet:

@@ -1,0 +1,2 @@
+aiogram==2.6.1
+elasticsearch-async==6.2.0
