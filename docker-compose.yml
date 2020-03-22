@@ -9,25 +9,9 @@ services:
     restart: always
     links:
       - web
-      - postgres
-      - es01
     depends_on:
       - web
-      - postgres
-      - es01
-    networks:
-      - esnet
-      - pgnet
     environment:
-      PG_HOST: $PG_HOST
-      PG_PORT: $POSTGRES_PORT
-      PG_DB: $POSTGRES_DB
-      PG_USER: $POSTGRES_USER
-      PG_PASS: $POSTGRES_PASS
-      ES_HOST: $ES_HOST
-      ES_PORT: $ELASTIC_PORT
-      ES_USER: $ES_USER
-      ES_PASS: $ES_PASS
       API_TOKEN: $BOT_API_TOKEN
 
   web:
@@ -45,15 +29,22 @@ services:
       PG_DB: $POSTGRES_DB
       PG_USER: $POSTGRES_USER
       PG_PASS: $POSTGRES_PASS
+      ES_HOST: $ES_HOST
+      ES_PORT: $ELASTIC_PORT
+      ES_USER: $ES_USER
+      ES_PASS: $ES_PASS
     ports:
       - "$WEB_APP_HOST:$WEB_APP_PORT:$WEB_APP_PORT"
     restart: always
     networks:
       - pgnet
+      - esnet
     links:
       - postgres
+      - es01
     depends_on:
       - postgres
+      - es01
     healthcheck:
       test: ["CMD", "curl", "-f", "http://$WEB_APP_HOST:$WEB_APP_PORT/healthCheck"]
       interval: 1m30s

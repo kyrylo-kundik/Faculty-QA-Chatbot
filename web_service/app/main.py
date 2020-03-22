@@ -1,5 +1,4 @@
 import json
-import os
 
 from flask import Flask
 
@@ -17,11 +16,4 @@ def health_check():
         json.dumps({'success': True}),
         200,
         {'ContentType': 'application/json'},
-    )
-
-
-if __name__ == '__main__':
-    app.run(
-        host=os.getenv("APP_HOST"),
-        port=int(os.getenv("APP_HOST"))
     )

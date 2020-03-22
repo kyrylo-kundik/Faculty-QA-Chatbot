@@ -106,9 +106,8 @@ venv.bak/
 .idea/
 .idea
 
-bot/.env
-
 dist
-dist/
 
 *.env
+
+web_service/app/qas/model
