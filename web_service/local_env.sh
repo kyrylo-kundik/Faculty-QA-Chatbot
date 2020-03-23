@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+export FLASK_APP="web_service/app"
+export FLASK_ENV="development"
+
 export SECRET_KEY="this-need-to-be-changed"
 export PORT=5000
 export HOST="localhost"
