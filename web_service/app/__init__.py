@@ -1,11 +1,14 @@
 from elasticsearch import Elasticsearch
+from elasticsearch.exceptions import NotFoundError
 from flask import Flask
 from flask.cli import with_appcontext
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
+from app.elastic.ingest_connector import IngestConnector
 from app.pdf_extractor import PDFExtractor
+from app.qas.bert import QA
 
 db = SQLAlchemy()
 
@@ -18,11 +21,13 @@ from app.models import *
 migrate = Migrate(app, db)
 
 
-@app.cli.command("check_db", help="Check db for all needed data to start the application.")
+@app.cli.command("check_app", help="Check app for all needed data to start.")
 @with_appcontext
-def check_db():
+def check_app():
     db.init_app(app)
 
+    # checking out ml model
+    QA()
     # TODO check knowledge database
 
     return app
@@ -38,9 +43,23 @@ def force_reseed_db():
 
     try:
         db.session.query(KnowledgePdfContent).delete()
+        db.session.query(KnowledgeAnswer).delete()
+        db.session.query(KnowledgeQuestion).delete()
         db.session.commit()
-    except:
+    except Exception as e:
         db.session.rollback()
+        raise e
+
+    app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']])
+    app.ingest_connector = IngestConnector()
+
+    app.elasticsearch.indices.delete(index=app.ingest_connector.index_name, ignore=[400, 404])
+    try:
+        app.ingest_connector.delete_pipeline()
+    except NotFoundError:
+        pass
+    finally:
+        app.ingest_connector.create_pipeline()
 
     for content in pdf_content.parsed_content:
         c = KnowledgePdfContent(
@@ -48,8 +67,15 @@ def force_reseed_db():
             content_paragraph=content.paragraph_num,
             content=content.content
         )
-        db.session.add(c)
-        db.session.commit()
+        try:
+            db.session.add(c)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            raise e
+        app.ingest_connector.add_to_index(
+            c.id, c.content, c.content_page, c.content_paragraph
+        )
 
     return app
 
@@ -60,13 +86,29 @@ def create_app():
 
     with app.app_context():
         # Import parts of our application
+        # pdf_content = []
+        # for content in KnowledgePdfContent.query.all():
+        #     pdf_content.append(str(content.content))
+        # app.pdf_content = "\n\n".join(pdf_content)
 
         app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']])
+        app.ingest_connector = IngestConnector()
 
-        # from app.routes import auth, tickets
+        app.bert_model = QA()
+
+        app.predictors_table = {
+            "bert_qa": lambda query: app.bert_model.search(
+                query=query,
+            ),
+            "ingest": lambda query: app.ingest_connector.search(
+                query=query
+            ),
+        }
+
+        from app.routes import main_bp
 
         # Register Blueprints
-        # app.register_blueprint(tickets.tickets_bp)
+        app.register_blueprint(main_bp.main_bp)
         # app.register_blueprint(auth.auth_bp)
 
         return app

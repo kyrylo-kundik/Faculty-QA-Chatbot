@@ -1,6 +1,9 @@
 from __future__ import absolute_import, division, print_function
 
 import collections
+import logging
+from typing import List
+
 import torch
 from torch.utils.data import DataLoader, SequentialSampler, TensorDataset
 from pytorch_transformers import BertConfig, BertForQuestionAnswering, BertTokenizer
@@ -12,7 +15,7 @@ RawResult = collections.namedtuple("RawResult", ["unique_id", "start_logits", "e
 
 class QA:
 
-    def __init__(self, model_path: str):
+    def __init__(self, model_path: str = "bert-base-multilingual-cased"):
         self.max_seq_length = 384
         self.doc_stride = 128
         self.do_lower_case = False
@@ -28,11 +31,30 @@ class QA:
         self.model.eval()
 
     @staticmethod
-    def load_model(model_path: str, do_lower_case=False):
-        config = BertConfig.from_pretrained(model_path + "/bert_config.json")
-        tokenizer = BertTokenizer.from_pretrained(model_path, do_lower_case=do_lower_case)
-        model = BertForQuestionAnswering.from_pretrained(model_path, from_tf=False, config=config)
+    def load_model(model_name: str, do_lower_case=False):
+        config = BertConfig.from_pretrained(model_name)
+        tokenizer = BertTokenizer.from_pretrained(model_name, do_lower_case=do_lower_case)
+        model = BertForQuestionAnswering.from_pretrained(model_name, from_tf=False, config=config)
         return model, tokenizer
+
+    def search(self, *, query: str):
+        from app import KnowledgePdfContent
+
+        contents: List[KnowledgePdfContent] = KnowledgePdfContent.query.all()
+        try:
+            results = [
+                {
+                    "model_result": self.predict(content.content, query),
+                    "content_id": content.id,
+                    "content_page_num": content.content_page,
+                    "content_paragraph_num": content.content_paragraph,
+                }
+                for content in contents
+            ]
+        except Exception as e:
+            logging.error(str(e))
+            return {"success": False}
+        return {"success": True, "results": results}
 
     def predict(self, passage: str, question: str):
         example = input_to_squad_example(passage, question)

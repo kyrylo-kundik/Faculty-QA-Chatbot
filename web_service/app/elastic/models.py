@@ -4,8 +4,8 @@ from app.elastic.search import add_to_index, query_index, remove_from_index
 
 class SearchableMixin:
     @classmethod
-    def search(cls, expression, page, per_page):
-        ids, total = query_index(cls.__tablename__, expression, page, per_page)
+    def search(cls, expression):
+        ids, total = query_index(cls.__tablename__, expression)
         if total == 0:
             return cls.query.filter_by(id=0), 0
         when = []

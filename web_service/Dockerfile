@@ -3,10 +3,6 @@ FROM python:3.7.3
 ADD . /app
 WORKDIR /app
 
-ARG MODEL_PATH="app/qas/model"
-RUN mkdir $MODEL_PATH
-RUN curl -o $MODEL_PATH/model.zip https://storage.googleapis.com/bert_models/2018_11_23/multi_cased_L-12_H-768_A-12.zip && unzip -j $MODEL_PATH/model.zip && rm -f $MODEL_PATH/model.zip
-
 ARG FLASK_ENV="development"
 ARG PORT
 ARG HOST
@@ -22,6 +18,4 @@ EXPOSE $PORT
 
 RUN pip3 install -r requirements.txt
 
-#ADD https://storage.googleapis.com/bert_models/2018_11_23/multi_cased_L-12_H-768_A-12.zip app/qas/model/
-
-CMD flask db upgrade && gunicorn -w 4 -b $HOST:$PORT "main:app"
+CMD flask db upgrade && flask check_app && gunicorn -w 4 -b $HOST:$PORT "main:app"
