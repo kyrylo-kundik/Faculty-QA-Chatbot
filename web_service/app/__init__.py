@@ -96,7 +96,14 @@ def create_app():
         app.ingest_connector = IngestConnector()
 
         # app.bert_model = QA()
-
+        app.api_predictors_table = {
+            # "bert_qa": lambda query: app.bert_model.search(
+            #     query=query,
+            # ),
+            "ingest": lambda query: app.ingest_connector.api_search(
+                query=query,
+            ),
+        }
         app.predictors_table = {
             # "bert_qa": lambda query: app.bert_model.search(
             #     query=query,

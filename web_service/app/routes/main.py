@@ -10,6 +10,22 @@ def health_check():
     return jsonify({"success": True})
 
 
+@main_bp.route("/api/search")
+def perform_direct_search():
+    try:
+        predictor = request.args.get("predictor")
+        query = request.args.get("query")
+    except KeyError:
+        abort(400)
+        return
+
+    try:
+        return jsonify(current_app.api_predictors_table[predictor](query))
+    except KeyError:
+        abort(404)
+        return
+
+
 @main_bp.route("/search")
 def perform_search():
     try:

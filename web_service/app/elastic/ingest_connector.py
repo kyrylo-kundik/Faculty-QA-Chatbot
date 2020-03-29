@@ -55,13 +55,16 @@ class IngestConnector:
     def remove_from_index(self, id_: int):
         current_app.elasticsearch.delete(index=self.index_name, id=id_)
 
-    def search(self, query: str):
-        search = current_app.elasticsearch.search(
+    def api_search(self, query: str):
+        return current_app.elasticsearch.search(
             index=self.index_name,
             body={
                 "query": {"match": {"attachment.content": query}}
             }
         )
+
+    def search(self, query: str):
+        search = self.api_search(query)
 
         ids = [int(hit['_id']) for hit in search['hits']['hits']]
 
