@@ -40,9 +40,15 @@ async def send_welcome(message: types.Message):
 
     await bot_typing(bot, message.chat.id, 3.0)
 
+    phrase = phrase_handler.get_phrase(
+        PhraseTypes.ASK_QUESTION_PHRASE
+    ) if message.chat.id == message.from_user.id else phrase_handler.get_phrase(
+        PhraseTypes.ASK_QUESTION_IN_GROUP_PHRASE
+    )
+
     await bot.send_message(
         message.chat.id,
-        phrase_handler.get_phrase(PhraseTypes.ASK_QUESTION_PHRASE),
+        phrase,
         parse_mode="Markdown"
     )
 
@@ -59,9 +65,15 @@ async def send_help(message: types.Message):
 
     await bot_typing(bot, message.chat.id, 3.0)
 
+    phrase = phrase_handler.get_phrase(
+        PhraseTypes.ASK_QUESTION_PHRASE
+    ) if message.chat.id == message.from_user.id else phrase_handler.get_phrase(
+        PhraseTypes.ASK_QUESTION_IN_GROUP_PHRASE
+    )
+
     await bot.send_message(
         message.chat.id,
-        phrase_handler.get_phrase(PhraseTypes.ASK_QUESTION_PHRASE),
+        phrase,
         parse_mode="Markdown"
     )
 

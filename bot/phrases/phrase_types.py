@@ -7,3 +7,4 @@ class PhraseTypes(enum.Enum):
     PLEASE_WAIT_PHRASE = 2
     PLEASE_RANK_PHRASE = 3
     HELP_PHRASE = 4
+    ASK_QUESTION_IN_GROUP_PHRASE = 5
