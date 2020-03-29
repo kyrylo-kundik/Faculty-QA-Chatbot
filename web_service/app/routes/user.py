@@ -10,7 +10,6 @@ user_bp = Blueprint("user_bp", __name__)
 @user_bp.route("/add", methods=["POST"])
 def add_user():
     content = request.json
-    print(content)
     tg_id = content["tg_id"]
 
     user: User = User.query.filter_by(tg_id=tg_id).first()
