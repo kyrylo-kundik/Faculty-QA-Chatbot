@@ -71,8 +71,10 @@ class IngestConnector:
         when = []
         for i in range(len(ids)):
             when.append((ids[i], i))
-        return KnowledgePdfContent.query.filter(
+
+        res = KnowledgePdfContent.query.filter(
             KnowledgePdfContent.id.in_(ids)
         ).order_by(
             db.case(when, value=KnowledgePdfContent.id)
-        )[0]
+        ).all()
+        return res if len(res) > 0 else None

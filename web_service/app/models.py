@@ -97,6 +97,14 @@ class KnowledgeAnswer(SearchableMixin, db.Model):
 
     knowledge_question = db.relationship('KnowledgeQuestion', back_populates='knowledge_answer')
 
+    @property
+    def serialize(self):
+        """Return object data in easily serializable format"""
+        return {
+            "id": self.id,
+            "text": self.text,
+        }
+
 
 class KnowledgePdfContent(db.Model):
     __tablename__ = "knowledge_pdf_content"

@@ -10,8 +10,10 @@ class SearchableMixin:
         when = []
         for i in range(len(ids)):
             when.append((ids[i], i))
-        return cls.query.filter(cls.id.in_(ids)).order_by(
-            db.case(when, value=cls.id))[0]
+        res = cls.query.filter(cls.id.in_(ids)).order_by(
+            db.case(when, value=cls.id)
+        ).all()
+        return res[0] if len(res) > 0 else None
 
     @classmethod
     def before_commit(cls, session):

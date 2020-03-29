@@ -24,7 +24,7 @@ migrate = Migrate(app, db)
 
 from app.elastic.ingest_connector import IngestConnector
 from app.pdf_extractor import PDFExtractor
-from app.search_wrapper import search_ingest
+from app.search_wrapper import search_ingest, api_search_elastic, search_elastic
 from app.qas.bert import QA
 
 
@@ -142,15 +142,18 @@ def create_app():
         app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']])
         app.ingest_connector = IngestConnector()
 
-        app.bert_context = requests.get(os.getenv("QA_TXT_URL")).text
+        # app.bert_context = requests.get(os.getenv("QA_TXT_URL")).text
 
-        app.bert_model = QA()
+        # app.bert_model = QA()
 
         app.api_predictors_table = {
-            "bert_qa": lambda query: app.bert_model.search(
+            # "bert_qa": lambda query: app.bert_model.search(
+            #     query=query,
+            # ),
+            "ingest": lambda query: app.ingest_connector.api_search(
                 query=query,
             ),
-            "ingest": lambda query: app.ingest_connector.api_search(
+            "qa": lambda query: api_search_elastic(
                 query=query,
             ),
         }
@@ -160,6 +163,10 @@ def create_app():
             #     query=query,
             # ),
             "ingest": lambda query, question_id: search_ingest(
+                query=query,
+                question_id=question_id
+            ),
+            "qa": lambda query, question_id: search_elastic(
                 query=query,
                 question_id=question_id
             ),

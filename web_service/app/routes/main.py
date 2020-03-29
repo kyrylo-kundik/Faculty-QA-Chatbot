@@ -41,7 +41,11 @@ def perform_search():
     question_id = publish_question(query, user_id, chat_id, msg_id)
 
     try:
-        return jsonify(current_app.predictors_table[predictor](query, question_id))
+        answer = current_app.predictors_table[predictor](query, question_id)
+        if answer:
+            return jsonify({"success": True, "answer": answer.serialize})
+        else:
+            return jsonify({"success": False})
     except KeyError:
         abort(404)  # will raise an error
         return
