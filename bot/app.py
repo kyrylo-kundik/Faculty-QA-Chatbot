@@ -9,7 +9,7 @@ from aiogram.utils import executor
 from aiogram.utils.callback_data import CallbackData
 
 from api.api_client import ApiClient, ApiClientError
-from api.models import Answer
+from api.models import Answer, User
 from phrases.phrase_handler import PhraseHandler
 from phrases.phrase_types import PhraseTypes
 from settings import setup_bot
@@ -25,7 +25,7 @@ api_client = ApiClient(
 
 predictors = bot.loop.run_until_complete(api_client.get_all_predictors())
 
-answer_cb = CallbackData('id', 'rating', 'predictor')
+answer_cb = CallbackData('answer_callback', 'id', 'rating', 'predictor')
 
 
 @dispatcher.message_handler(commands=["start"])
@@ -81,11 +81,13 @@ async def user_question(message: types.Message):
 
 
 @dispatcher.callback_query_handler()
-async def rate_answer(query: types.CallbackQuery, callback_data: dict):
+async def rate_answer(query: types.CallbackQuery):
+    callback_data = answer_cb.parse(query.data)
+
     msg_id = query.message.message_id
     user_id = query.from_user.id
-    answer_id = callback_data["id"]
-    rating = callback_data["rating"]
+    answer_id = int(callback_data["id"])
+    rating = int(callback_data["rating"])
     predictor = callback_data["predictor"]
 
     logging.info(
@@ -100,15 +102,28 @@ async def rate_answer(query: types.CallbackQuery, callback_data: dict):
             rating=rating,
             msg_id=msg_id
         ))
+
     except ApiClientError:
         logging.error("Got error from api_client.update_answer. See the full trace in console.")
         traceback.print_exc()
+
+    await bot.edit_message_text(
+        text=f"{query.message.text}\n\n*ДЯКУЮ ЗА ТЕ, ЩО РОБИШ МЕНЕ КРАЩЕ!*",
+        chat_id=query.message.chat.id,
+        message_id=query.message.message_id,
+        reply_markup=None,
+        parse_mode="Markdown"
+    )
 
 
 async def process_question(message: types.Message):
     logging.info(f"adding user: {message.from_user.id}")
     try:
-        await api_client.add_user(message.from_user)
+        await api_client.add_user(User(
+            tg_id=message.from_user.id,
+            first_name=message.from_user.first_name,
+            username=message.from_user.username
+        ))
     except ApiClientError:
         logging.error("Got error from api_client.add_user. See the full trace in console.")
         traceback.print_exc()
@@ -130,7 +145,9 @@ async def process_question(message: types.Message):
         api_client.publish_question(
             message.text,
             predictor,
-            message.from_user.id
+            message.from_user.id,
+            message.message_id,
+            message.chat.id
         ) for predictor in predictors
     ]
 
@@ -149,7 +166,7 @@ async def process_question(message: types.Message):
             message.chat.id,
             f"{answer.predictor} said:\n\n{answer.text}",
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup().add(
+            reply_markup=InlineKeyboardMarkup(row_width=5).add(
                 InlineKeyboardButton(
                     "⭐️1", callback_data=answer_cb.new(id=answer.id_, rating=1, predictor=answer.predictor)
                 ),

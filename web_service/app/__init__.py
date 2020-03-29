@@ -6,10 +6,6 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
-from app.elastic.ingest_connector import IngestConnector
-from app.pdf_extractor import PDFExtractor
-from app.qas.bert import QA
-
 db = SQLAlchemy()
 
 app = Flask(__name__, instance_relative_config=False)
@@ -19,6 +15,11 @@ CORS(app)
 from app.models import *
 
 migrate = Migrate(app, db)
+
+from app.elastic.ingest_connector import IngestConnector
+from app.pdf_extractor import PDFExtractor
+from app.search_wrapper import search_ingest
+from app.qas.bert import QA
 
 
 @app.cli.command("check_app", help="Check app for all needed data to start.")
@@ -77,6 +78,10 @@ def force_reseed_db():
             c.id, c.content, c.content_page, c.content_paragraph
         )
 
+    predictor = Predictor(name="ingest", description="Search based on ingest plugin for elasticsearch")
+    db.session.add(predictor)
+    db.session.commit()
+
     return app
 
 
@@ -86,29 +91,28 @@ def create_app():
 
     with app.app_context():
         # Import parts of our application
-        # pdf_content = []
-        # for content in KnowledgePdfContent.query.all():
-        #     pdf_content.append(str(content.content))
-        # app.pdf_content = "\n\n".join(pdf_content)
 
         app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']])
         app.ingest_connector = IngestConnector()
 
-        app.bert_model = QA()
+        # app.bert_model = QA()
 
         app.predictors_table = {
-            "bert_qa": lambda query: app.bert_model.search(
+            # "bert_qa": lambda query: app.bert_model.search(
+            #     query=query,
+            # ),
+            "ingest": lambda query, question_id: search_ingest(
                 query=query,
-            ),
-            "ingest": lambda query: app.ingest_connector.search(
-                query=query
+                question_id=question_id
             ),
         }
 
-        from app.routes import main_bp
+        from app.routes import main, predictor, answer, user
 
         # Register Blueprints
-        app.register_blueprint(main_bp.main_bp)
-        # app.register_blueprint(auth.auth_bp)
+        app.register_blueprint(main.main_bp)
+        app.register_blueprint(user.user_bp, url_prefix="/user")
+        app.register_blueprint(predictor.predictor_bp, url_prefix="/predictor")
+        app.register_blueprint(answer.answer_bp, url_prefix="/answer")
 
         return app

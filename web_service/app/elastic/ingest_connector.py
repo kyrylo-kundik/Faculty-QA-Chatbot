@@ -3,6 +3,8 @@ import base64
 from elasticsearch.client import IngestClient
 from flask import current_app
 
+from app import db, KnowledgePdfContent
+
 
 class IngestConnector:
     def __init__(
@@ -54,9 +56,20 @@ class IngestConnector:
         current_app.elasticsearch.delete(index=self.index_name, id=id_)
 
     def search(self, query: str):
-        return current_app.elasticsearch.search(
+        search = current_app.elasticsearch.search(
             index=self.index_name,
             body={
                 "query": {"match": {"attachment.content": query}}
             }
         )
+
+        ids = [int(hit['_id']) for hit in search['hits']['hits']]
+
+        when = []
+        for i in range(len(ids)):
+            when.append((ids[i], i))
+        return KnowledgePdfContent.query.filter(
+            KnowledgePdfContent.id.in_(ids)
+        ).order_by(
+            db.case(when, value=KnowledgePdfContent.id)
+        )[0]

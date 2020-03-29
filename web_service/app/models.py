@@ -59,6 +59,19 @@ class Answer(db.Model):
         ondelete='RESTRICT',
     ), nullable=False)
 
+    @property
+    def serialize(self):
+        """Return object data in easily serializable format"""
+        return {
+            "id": self.id,
+            "text": self.text,
+            "rating": self.rating,
+            "msg_id": self.msg_id,
+            "created_at": self.created_at,
+            "question_fk": self.question_fk,
+            "predictor_fk": self.predictor_fk,
+        }
+
 
 class KnowledgeQuestion(SearchableMixin, db.Model):
     __tablename__ = "knowledge_question"

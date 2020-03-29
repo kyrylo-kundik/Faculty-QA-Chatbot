@@ -31,7 +31,7 @@ class ApiClient:
 
         try:
             async with self._session.request(
-                    verb, url, data=payload, params=params, headers=headers
+                    verb, url, json=payload, params=params, headers=headers
             ) as response:
                 response = await response.json()
 
@@ -68,14 +68,18 @@ class ApiClient:
             self,
             query: str,
             predictor: str,
-            tg_id: int
+            tg_id: int,
+            msg_id: int,
+            chat_id: int
     ) -> Answer:
         resp = await self.fetch(
             method="/search",
             params={
-                "tg_id": tg_id,
+                "user_id": tg_id,
                 "query": query,
                 "predictor": predictor,
+                "msg_id": msg_id,
+                "chat_id": chat_id,
             }
         )
         return Answer(

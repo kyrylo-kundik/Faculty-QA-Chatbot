@@ -20,7 +20,7 @@ class Answer:
             msg_id: int = None
     ):
         self.id_ = id_
-        self.text = text,
+        self.text = text
         self.predictor = predictor
         self.rating = rating
         self.msg_id = msg_id

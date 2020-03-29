@@ -5,14 +5,13 @@ from app.elastic.search import add_to_index, query_index, remove_from_index
 class SearchableMixin:
     @classmethod
     def search(cls, expression):
-        ids, total = query_index(cls.__tablename__, expression)
-        if total == 0:
-            return cls.query.filter_by(id=0), 0
+        ids = query_index(cls.__tablename__, expression)
+
         when = []
         for i in range(len(ids)):
             when.append((ids[i], i))
         return cls.query.filter(cls.id.in_(ids)).order_by(
-            db.case(when, value=cls.id)), total
+            db.case(when, value=cls.id))[0]
 
     @classmethod
     def before_commit(cls, session):

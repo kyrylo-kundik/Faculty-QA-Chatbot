@@ -18,4 +18,4 @@ EXPOSE $PORT
 
 RUN pip3 install -r requirements.txt
 
-CMD flask db upgrade && flask check_app && gunicorn -w 4 -b $HOST:$PORT "main:app"
+CMD flask db upgrade && flask check_app && gunicorn -w 4 -b $HOST:$PORT --access-logfile - --error-logfile - --log-level info "main:app"

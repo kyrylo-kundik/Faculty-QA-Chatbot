@@ -1,6 +1,6 @@
 import random
 
-import phrases
+from phrases import phrases
 from phrases import phrase_types
 
 
