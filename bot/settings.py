@@ -1,12 +1,9 @@
 import logging
-import os
 
 from aiogram import Bot, Dispatcher
 
 
-def setup_bot() -> (Bot, Dispatcher):
-    token = os.getenv("API_TOKEN")
-
+def setup_bot(token: str) -> (Bot, Dispatcher):
     # Configure logging
     logging.basicConfig(level=logging.INFO)
 
