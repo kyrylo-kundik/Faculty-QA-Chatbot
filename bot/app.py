@@ -139,7 +139,7 @@ async def process_question(message: types.Message):
         parse_mode="Markdown",
     )
 
-    await bot_typing(bot, message.chat.id, 0.0)  # bot will have "typing" status until first search done
+    await bot_typing(bot, message.chat.id)  # bot will have "typing" status until first search done
 
     tasks = [
         api_client.publish_question(
