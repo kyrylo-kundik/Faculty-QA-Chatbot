@@ -119,8 +119,9 @@ async def rate_answer(query: types.CallbackQuery):
         logging.error("Got error from api_client.update_answer. See the full trace in console.")
         traceback.print_exc()
 
+    text = query.message.text.replace(predictor.replace('\\_', '_'), predictor)
     await bot.edit_message_text(
-        text=f"{query.message.text}\n\n*ДЯКУЮ ЗА ТЕ, ЩО РОБИШ МЕНЕ КРАЩЕ!*",
+        text=f"{text}\n\n*ДЯКУЮ ЗА ТЕ, ЩО РОБИШ МЕНЕ КРАЩЕ!*",
         chat_id=query.message.chat.id,
         message_id=query.message.message_id,
         reply_markup=None,
