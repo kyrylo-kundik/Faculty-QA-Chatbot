@@ -1,4 +1,4 @@
-from phrase_types import PhraseTypes
+from phrases.phrase_types import PhraseTypes
 
 phrases = {
     PhraseTypes.WELCOME_PHRASE: ["Привіт, привіт!", "Прівєт", "Привіт"],

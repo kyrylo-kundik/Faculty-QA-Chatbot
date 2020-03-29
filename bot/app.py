@@ -1,27 +1,48 @@
+import asyncio
+import logging
 import os
+import traceback
 
 from aiogram import types
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils import executor
+from aiogram.utils.callback_data import CallbackData
 
-from api_client import ApiClient
-from phrase_handler import PhraseHandler
-from phrase_types import PhraseTypes
+from api.api_client import ApiClient, ApiClientError
+from api.models import Answer
+from phrases.phrase_handler import PhraseHandler
+from phrases.phrase_types import PhraseTypes
 from settings import setup_bot
 from utils import bot_typing
 
 bot, dispatcher = setup_bot(os.getenv("API_TOKEN"))
 
 phrase_handler = PhraseHandler()
-api_client = ApiClient(api_url=f"http://{os.getenv('API_HOST')}:{os.getenv('API_PORT')}")
+api_client = ApiClient(
+    api_url=f"http://{os.getenv('API_HOST')}:{os.getenv('API_PORT')}",
+    loop=bot.loop
+)
+
+predictors = bot.loop.run_until_complete(api_client.get_all_predictors())
+
+answer_cb = CallbackData('id', 'rating', 'predictor')
 
 
 @dispatcher.message_handler(commands=["start"])
 async def send_welcome(message: types.Message):
-    await bot_typing(bot, message.chat.id, 2.0)
+    await bot_typing(bot, message.chat.id)
 
     await bot.send_message(
         message.chat.id,
         phrase_handler.get_phrase(PhraseTypes.WELCOME_PHRASE),
+        parse_mode="Markdown"
+    )
+
+    await bot_typing(bot, message.chat.id, 3.0)
+
+    await bot.send_message(
+        message.chat.id,
+        phrase_handler.get_phrase(PhraseTypes.ASK_QUESTION_PHRASE),
         parse_mode="Markdown"
     )
 
@@ -33,6 +54,127 @@ async def send_help(message: types.Message):
     await bot.send_message(
         message.chat.id,
         phrase_handler.get_phrase(PhraseTypes.HELP_PHRASE),
+        parse_mode="Markdown"
+    )
+
+    await bot_typing(bot, message.chat.id, 3.0)
+
+    await bot.send_message(
+        message.chat.id,
+        phrase_handler.get_phrase(PhraseTypes.ASK_QUESTION_PHRASE),
+        parse_mode="Markdown"
+    )
+
+
+@dispatcher.message_handler(regexp="@FIChatbot", content_types=types.ContentTypes.TEXT)
+async def in_group_question(message: types.Message):
+    message.text = message.text.replace("@FIChatbot", "").strip()
+    await process_question(message)
+
+
+@dispatcher.message_handler(content_types=types.ContentTypes.TEXT)
+async def user_question(message: types.Message):
+    if message.chat.id != message.from_user.id:
+        return
+
+    await process_question(message)
+
+
+@dispatcher.callback_query_handler()
+async def rate_answer(query: types.CallbackQuery, callback_data: dict):
+    msg_id = query.message.message_id
+    user_id = query.from_user.id
+    answer_id = callback_data["id"]
+    rating = callback_data["rating"]
+    predictor = callback_data["predictor"]
+
+    logging.info(
+        f"user: {user_id} mark question msg_id: {msg_id} "
+        f"from predictor: {predictor} with rate: {rating}"
+    )
+
+    try:
+        await api_client.update_answer(Answer(
+            id_=answer_id,
+            predictor=predictor,
+            rating=rating,
+            msg_id=msg_id
+        ))
+    except ApiClientError:
+        logging.error("Got error from api_client.update_answer. See the full trace in console.")
+        traceback.print_exc()
+
+
+async def process_question(message: types.Message):
+    logging.info(f"adding user: {message.from_user.id}")
+    try:
+        await api_client.add_user(message.from_user)
+    except ApiClientError:
+        logging.error("Got error from api_client.add_user. See the full trace in console.")
+        traceback.print_exc()
+
+    question: str = message.text
+    logging.info(f"Processing question from user ({message.from_user.first_name}): {question}")
+
+    await bot_typing(bot, message.chat.id, 1.0)
+
+    await bot.send_message(
+        message.chat.id,
+        phrase_handler.get_phrase(PhraseTypes.PLEASE_WAIT_PHRASE),
+        parse_mode="Markdown",
+    )
+
+    await bot_typing(bot, message.chat.id, 0.0)  # bot will have "typing" status until first search done
+
+    tasks = [
+        api_client.publish_question(
+            message.text,
+            predictor,
+            message.from_user.id
+        ) for predictor in predictors
+    ]
+
+    for task in asyncio.as_completed(tasks, loop=bot.loop):
+        try:
+            answer: Answer = await task
+        except ApiClientError:
+            logging.error("Got error from api_client.search. See the full trace in console.")
+            traceback.print_exc()
+
+            continue
+
+        answer.predictor = answer.predictor.replace('_', '\\_')  # due to markdown parse errors
+
+        await bot.send_message(
+            message.chat.id,
+            f"{answer.predictor} said:\n\n{answer.text}",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup().add(
+                InlineKeyboardButton(
+                    "⭐️1", callback_data=answer_cb.new(id=answer.id_, rating=1, predictor=answer.predictor)
+                ),
+                InlineKeyboardButton(
+                    "⭐️2", callback_data=answer_cb.new(id=answer.id_, rating=2, predictor=answer.predictor)
+                ),
+                InlineKeyboardButton(
+                    "⭐️3", callback_data=answer_cb.new(id=answer.id_, rating=3, predictor=answer.predictor)
+                ),
+                InlineKeyboardButton(
+                    "⭐️4", callback_data=answer_cb.new(id=answer.id_, rating=4, predictor=answer.predictor)
+                ),
+                InlineKeyboardButton(
+                    "⭐️5", callback_data=answer_cb.new(id=answer.id_, rating=5, predictor=answer.predictor)
+                )
+            )
+        )
+
+        await bot_typing(bot, message.chat.id, 0.0)  # set typing status until next search done
+
+    await bot_typing(bot, message.chat.id)
+
+    await bot.send_message(
+        message.chat.id,
+        phrase_handler.get_phrase(PhraseTypes.PLEASE_RANK_PHRASE),
         parse_mode="Markdown"
     )
 

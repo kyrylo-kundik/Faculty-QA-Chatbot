@@ -1,7 +1,7 @@
 import random
 
 import phrases
-import phrase_types
+from phrases import phrase_types
 
 
 class PhraseHandler:
