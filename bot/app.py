@@ -154,10 +154,14 @@ async def process_question(message: types.Message):
     for task in asyncio.as_completed(tasks, loop=bot.loop):
         try:
             answer: Answer = await task
+
         except ApiClientError:
             logging.error("Got error from api_client.search. See the full trace in console.")
             traceback.print_exc()
 
+            continue
+
+        if answer is None:
             continue
 
         answer.predictor = answer.predictor.replace('_', '\\_')  # due to markdown parse errors

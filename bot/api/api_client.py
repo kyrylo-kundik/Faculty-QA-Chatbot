@@ -1,5 +1,5 @@
 import asyncio
-from typing import List
+from typing import List, Union
 
 from aiohttp import ClientSession, ClientResponseError
 
@@ -71,7 +71,7 @@ class ApiClient:
             tg_id: int,
             msg_id: int,
             chat_id: int
-    ) -> Answer:
+    ) -> Union[Answer, None]:
         resp = await self.fetch(
             method="/search",
             params={
@@ -82,11 +82,14 @@ class ApiClient:
                 "chat_id": chat_id,
             }
         )
-        return Answer(
-            id_=resp["id"],
-            text=resp["text"],
-            predictor=predictor
-        )
+        if resp["success"] is True:
+            return Answer(
+                id_=resp["answer"]["id"],
+                text=resp["answer"]["text"],
+                predictor=predictor
+            )
+        else:
+            return None
 
     async def get_all_predictors(self) -> List[str]:
         return (await self.fetch(

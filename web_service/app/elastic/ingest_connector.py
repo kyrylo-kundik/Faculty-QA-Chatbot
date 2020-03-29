@@ -77,4 +77,4 @@ class IngestConnector:
         ).order_by(
             db.case(when, value=KnowledgePdfContent.id)
         ).all()
-        return res if len(res) > 0 else None
+        return res[0] if len(res) > 0 else None
