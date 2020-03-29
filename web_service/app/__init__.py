@@ -34,7 +34,7 @@ def check_app():
     db.init_app(app)
 
     # checking out ml model
-    QA()
+    # QA()
     # TODO check knowledge database
 
     return app
@@ -50,8 +50,8 @@ def force_reseed_db():
 
     try:
         db.session.query(KnowledgePdfContent).delete()
-        db.session.query(KnowledgeAnswer).delete()
         db.session.query(KnowledgeQuestion).delete()
+        db.session.query(KnowledgeAnswer).delete()
         db.session.commit()
     except Exception as e:
         db.session.rollback()
@@ -116,9 +116,22 @@ def force_reseed_db():
         except Exception as e:
             db.session.rollback()
             raise e
+
     try:
         predictor = Predictor(
-            name="qa",
+            name="qa_question",
+            description="Search based on Buddy QA Knowledge base with elasticsearch"
+        )
+
+        db.session.add(predictor)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        logging.warning("QA predictor has already been stored in database.")
+
+    try:
+        predictor = Predictor(
+            name="qa_answer",
             description="Search based on Buddy QA Knowledge base with elasticsearch"
         )
 
@@ -166,9 +179,14 @@ def create_app():
                 query=query,
                 question_id=question_id
             ),
-            "qa": lambda query, question_id: search_elastic(
+            "qa_question": lambda query, question_id: search_elastic(
                 query=query,
                 question_id=question_id
+            ),
+            "qa_answer": lambda query, question_id: search_elastic(
+                query=query,
+                question_id=question_id,
+                mode="answer"
             ),
         }
 

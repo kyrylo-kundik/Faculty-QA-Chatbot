@@ -50,27 +50,32 @@ def api_search_elastic(query) -> dict:
     }
 
     if knowledge_answer.text != knowledge_question.knowledge_answer.text:
-        resp.update({"question_answer": knowledge_question.knowledge_answer.serialize})
+        resp.update({"question_answer": {
+            "answer": knowledge_question.knowledge_answer.serialize,
+            "question": knowledge_question.text,
+        }})
 
     return resp
 
 
-def search_elastic(query, question_id) -> Union[Answer, None]:
-    knowledge_question: KnowledgeQuestion = KnowledgeQuestion.search(query)
-    knowledge_answer: KnowledgeAnswer = KnowledgeAnswer.search(query)
+def search_elastic(query, question_id, mode="question") -> Union[Answer, None]:
+    if mode == "question":
+        knowledge_question: KnowledgeQuestion = KnowledgeQuestion.search(query)
+        if not knowledge_question:
+            return None
 
-    if not knowledge_answer and not knowledge_question:
-        return None
+        answer_text = knowledge_question.knowledge_answer.text
+    else:
+        knowledge_answer: KnowledgeAnswer = KnowledgeAnswer.search(query)
+        if not knowledge_answer:
+            return None
 
-    answer_text = knowledge_answer.text
-    question_answer_text = knowledge_question.knowledge_answer.text
-    if answer_text != question_answer_text:
-        answer_text = knowledge_answer.text + "\n\n_АБО_\n\n" + knowledge_question.knowledge_answer.text
+        answer_text = knowledge_answer.text
 
     answer = Answer(
         text=answer_text,
         question_fk=question_id,
-        predictor_fk=Predictor.query.filter_by(name="qa").first().id
+        predictor_fk=Predictor.query.filter_by(name=f"qa_{mode}").first().id
     )
     db.session.add(answer)
     db.session.commit()
