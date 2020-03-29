@@ -1,3 +1,7 @@
+import logging
+import os
+
+import requests
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import NotFoundError
 from flask import Flask
@@ -5,6 +9,8 @@ from flask.cli import with_appcontext
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+
+from app.qa_extractor import QAExtractor
 
 db = SQLAlchemy()
 
@@ -40,7 +46,7 @@ def force_reseed_db():
     db.init_app(app)
 
     # TODO force reseed database
-    pdf_content = PDFExtractor()
+    pdf_content = PDFExtractor(os.getenv("PDF_URL"))
 
     try:
         db.session.query(KnowledgePdfContent).delete()
@@ -78,14 +84,55 @@ def force_reseed_db():
             c.id, c.content, c.content_page, c.content_paragraph
         )
 
-    predictor = Predictor(name="ingest", description="Search based on ingest plugin for elasticsearch")
-    db.session.add(predictor)
-    db.session.commit()
+    try:
+        predictor = Predictor(
+            name="ingest",
+            description="Search based on ingest plugin for elasticsearch"
+        )
+
+        db.session.add(predictor)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        logging.warning("Ingest predictor has already been stored in db")
+
+    qa = QAExtractor(os.getenv("QA_TXT_URL"))
+
+    for qa_content in qa.parse():
+        try:
+            answer = KnowledgeAnswer(
+                text=qa_content.answer
+            )
+
+            db.session.add(answer)
+            db.session.commit()
+
+            question = KnowledgeQuestion(
+                text=qa_content.question, knowledge_answer_fk=answer.id
+            )
+
+            db.session.add(question)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            raise e
+    try:
+        predictor = Predictor(
+            name="qa",
+            description="Search based on Buddy QA Knowledge base with elasticsearch"
+        )
+
+        db.session.add(predictor)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        logging.warning("QA predictor has already been stored in database.")
 
     return app
 
 
 def create_app():
+    logging.info("Setting up app.")
     # Initialize Plugins
     db.init_app(app)
 
@@ -95,15 +142,19 @@ def create_app():
         app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']])
         app.ingest_connector = IngestConnector()
 
-        # app.bert_model = QA()
+        app.bert_context = requests.get(os.getenv("QA_TXT_URL")).text
+
+        app.bert_model = QA()
+
         app.api_predictors_table = {
-            # "bert_qa": lambda query: app.bert_model.search(
-            #     query=query,
-            # ),
+            "bert_qa": lambda query: app.bert_model.search(
+                query=query,
+            ),
             "ingest": lambda query: app.ingest_connector.api_search(
                 query=query,
             ),
         }
+
         app.predictors_table = {
             # "bert_qa": lambda query: app.bert_model.search(
             #     query=query,
@@ -121,5 +172,7 @@ def create_app():
         app.register_blueprint(user.user_bp, url_prefix="/user")
         app.register_blueprint(predictor.predictor_bp, url_prefix="/predictor")
         app.register_blueprint(answer.answer_bp, url_prefix="/answer")
+
+        logging.info("App started.")
 
         return app

@@ -14,7 +14,7 @@ from pdfminer.pdfpage import PDFPage
 class PDFExtractor:
     PageParagraphContent = collections.namedtuple("PageParagraphContent", "page_num paragraph_num content")
 
-    def __init__(self, pdf_url="https://drive.google.com/u/0/uc?id=1aFsZWtcdv5chxCfs3Mhs22xrPSwdki8b&export=download"):
+    def __init__(self, pdf_url):
         self._pdf_url = pdf_url
         self._tmp_path = "tmp.pdf"
         self._max_page_num = 75
@@ -159,7 +159,8 @@ class PDFExtractor:
 
 
 if __name__ == "__main__":
-    p = PDFExtractor()
+    pass
+    # p = PDFExtractor()
 
-    for content in p.parsed_content:
-        print(f"\n\n\nPage: {content.page_num}, Paragraph: {content.paragraph_num}\n{content.content}")
+    # for content in p.parsed_content:
+    #     print(f"\n\n\nPage: {content.page_num}, Paragraph: {content.paragraph_num}\n{content.content}")

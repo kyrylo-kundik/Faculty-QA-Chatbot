@@ -5,6 +5,7 @@ import logging
 from typing import List
 
 import torch
+from flask import current_app
 from torch.utils.data import DataLoader, SequentialSampler, TensorDataset
 from pytorch_transformers import BertConfig, BertForQuestionAnswering, BertTokenizer
 
@@ -38,23 +39,12 @@ class QA:
         return model, tokenizer
 
     def search(self, *, query: str):
-        from app import KnowledgePdfContent
-
-        contents: List[KnowledgePdfContent] = KnowledgePdfContent.query.all()
         try:
-            results = [
-                {
-                    "model_result": self.predict(content.content, query),
-                    "content_id": content.id,
-                    "content_page_num": content.content_page,
-                    "content_paragraph_num": content.content_paragraph,
-                }
-                for content in contents
-            ]
+            return {"result": self.predict(current_app.bert_context, query)}
+
         except Exception as e:
             logging.error(str(e))
             return {"success": False}
-        return {"success": True, "results": results}
 
     def predict(self, passage: str, question: str):
         example = input_to_squad_example(passage, question)
