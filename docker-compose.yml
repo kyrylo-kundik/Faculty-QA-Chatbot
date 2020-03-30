@@ -21,10 +21,10 @@ services:
       context: ./web_service
       args:
         PORT: $WEB_APP_PORT
-        HOST: $WEB_APP_HOST
+        HOST: "0.0.0.0"
     container_name: chatbot_web
     environment:
-      APP_HOST: $WEB_APP_HOST
+      APP_HOST: "0.0.0.0"
       APP_PORT: $WEB_APP_PORT
       PG_HOST: $PG_HOST
       PG_PORT: $POSTGRES_PORT
@@ -73,7 +73,7 @@ services:
     volumes:
       - esdata01:/usr/share/elasticsearch/data
     ports:
-      - "$ELASTIC_HOST:$ELASTIC_PORT:$ELASTIC_EXTERNAL_PORT"
+      - "$ELASTIC_HOST:$ELASTIC_EXTERNAL_PORT:$ELASTIC_PORT"
     networks:
       - esnet
 
@@ -105,7 +105,7 @@ services:
       POSTGRES_USER: $POSTGRES_USER
       POSTGRES_DB: $POSTGRES_DB
     ports:
-      - "$POSTGRES_HOST:$POSTGRES_PORT:$POSTGRES_EXTERNAL_PORT"
+      - "$POSTGRES_HOST:$POSTGRES_EXTERNAL_PORT:$POSTGRES_PORT"
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
