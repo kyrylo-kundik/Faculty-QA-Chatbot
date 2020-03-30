@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import random
 import traceback
 
 from aiogram import types
@@ -202,7 +203,7 @@ async def process_question(message: types.Message):
             )
         )
 
-        await bot_typing(bot, message.chat.id, 0.0)  # set typing status until next search done
+        await bot_typing(bot, message.chat.id, float(random.randint(2, 4)))  # set typing status until next search done
 
     await bot_typing(bot, message.chat.id)
 
