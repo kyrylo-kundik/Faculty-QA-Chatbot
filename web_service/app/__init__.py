@@ -1,7 +1,6 @@
 import logging
 import os
 
-import requests
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import NotFoundError
 from flask import Flask
@@ -9,8 +8,6 @@ from flask.cli import with_appcontext
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-
-from app.qa_extractor import QAExtractor
 
 db = SQLAlchemy()
 
@@ -25,7 +22,7 @@ migrate = Migrate(app, db)
 from app.elastic.ingest_connector import IngestConnector
 from app.pdf_extractor import PDFExtractor
 from app.search_wrapper import search_ingest, api_search_elastic, search_elastic
-from app.qas.bert import QA
+from app.qa_extractor import QAExtractor
 
 
 @app.cli.command("check_app", help="Check app for all needed data to start.")
@@ -92,9 +89,9 @@ def force_reseed_db():
 
         db.session.add(predictor)
         db.session.commit()
-    except Exception:
+    except Exception as e:
         db.session.rollback()
-        logging.warning("Ingest predictor has already been stored in db")
+        logging.warning("Ingest predictor has already been stored in db", str(e))
 
     qa = QAExtractor(os.getenv("QA_TXT_URL"))
 
@@ -125,9 +122,9 @@ def force_reseed_db():
 
         db.session.add(predictor)
         db.session.commit()
-    except Exception:
+    except Exception as e:
         db.session.rollback()
-        logging.warning("QA predictor has already been stored in database.")
+        logging.warning("QA predictor has already been stored in database.", str(e))
 
     try:
         predictor = Predictor(
@@ -137,9 +134,9 @@ def force_reseed_db():
 
         db.session.add(predictor)
         db.session.commit()
-    except Exception:
+    except Exception as e:
         db.session.rollback()
-        logging.warning("QA predictor has already been stored in database.")
+        logging.warning("QA predictor has already been stored in database.", str(e))
 
     return app
 
