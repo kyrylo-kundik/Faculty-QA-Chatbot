@@ -84,7 +84,10 @@ async def send_help(message: types.Message):
 @dispatcher.message_handler(filters.IDFilter(chat_id=support_chat_id))
 async def reply_question(message: types.Message):
     me = await bot.me
-    if message.reply_to_message.from_user.id != me.id:
+    try:
+        if message.reply_to_message.from_user.id != me.id:
+            return
+    except AttributeError:
         return
 
     await api_client.add_user(User(
