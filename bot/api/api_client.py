@@ -3,7 +3,7 @@ from typing import List, Union
 
 from aiohttp import ClientSession, ClientResponseError
 
-from api.models import User, Answer
+from api.models import User, Answer, ExpertQuestion
 
 
 class ApiClientError(Exception):
@@ -96,3 +96,41 @@ class ApiClient:
             method="/predictor/all",
             verb="GET"
         ))["predictors"]
+
+    async def add_expert_question(self, exp_q: ExpertQuestion) -> bool:
+        await self.fetch(
+            method="/question/add",
+            verb="POST",
+            payload={
+                "text": exp_q.question_text,
+                "msg_id": exp_q.question_msg_id,
+                "chat_id": exp_q.question_chat_id,
+                "expert_chat_id": exp_q.expert_question_chat_id,
+                "expert_msg_id": exp_q.expert_question_msg_id,
+            }
+        )
+        return True
+
+    async def update_expert_question(self, exp_q: ExpertQuestion) -> Union[None, ExpertQuestion]:
+        resp = await self.fetch(
+            method="/question/update",
+            verb="PUT",
+            payload={
+                "msg_id": exp_q.expert_answer_msg_id,
+                "text": exp_q.expert_answer_text,
+                "tg_id": exp_q.expert_user_fk,
+            },
+            params={
+                "msg_id": exp_q.expert_question_msg_id,
+                "chat_id": exp_q.expert_question_chat_id,
+            }
+        )
+
+        if resp["success"] is True:
+            exp_q.question_msg_id = resp["expert_question"]["question_msg_id"]
+            exp_q.question_text = resp["expert_question"]["question_text"]
+            exp_q.question_chat_id = resp["expert_question"]["question_chat_id"]
+            exp_q.id_ = resp["expert_question"]["id"]
+            return exp_q
+        else:
+            return None

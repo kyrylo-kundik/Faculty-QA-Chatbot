@@ -5,12 +5,13 @@ import random
 import traceback
 
 from aiogram import types
+from aiogram.dispatcher import filters
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils import executor
 from aiogram.utils.callback_data import CallbackData
 
 from api.api_client import ApiClient, ApiClientError
-from api.models import Answer, User
+from api.models import Answer, User, ExpertQuestion
 from phrases.phrase_handler import PhraseHandler
 from phrases.phrase_types import PhraseTypes
 from settings import setup_bot
@@ -23,6 +24,7 @@ api_client = ApiClient(
     api_url=f"http://{os.getenv('API_HOST')}:{os.getenv('API_PORT')}",
     loop=bot.loop
 )
+support_chat_id = int(os.getenv("SUPPORT_CHAT_ID"))
 
 predictors = bot.loop.run_until_complete(api_client.get_all_predictors())
 
@@ -79,6 +81,36 @@ async def send_help(message: types.Message):
     )
 
 
+@dispatcher.message_handler(filters.IDFilter(chat_id=support_chat_id))
+async def reply_question(message: types.Message):
+    me = await bot.me
+    if message.reply_to_message.from_user.id != me.id:
+        return
+
+    await api_client.add_user(User(
+        tg_id=message.from_user.id,
+        first_name=message.from_user.first_name,
+        username=message.from_user.username,
+    ))
+
+    exp_q = ExpertQuestion(
+        expert_question_chat_id=message.reply_to_message.chat.id,
+        expert_question_msg_id=message.reply_to_message.message_id,
+        expert_answer_msg_id=message.message_id,
+        expert_answer_text=message.text,
+        expert_user_fk=message.from_user.id,
+    )
+
+    exp_q = await api_client.update_expert_question(exp_q)
+
+    await bot.send_message(
+        chat_id=exp_q.question_chat_id,
+        text=f"_Експерт каже:_\n\n{exp_q.expert_answer_text}",
+        reply_to_message_id=exp_q.question_msg_id,
+        parse_mode="Markdown",
+    )
+
+
 @dispatcher.message_handler(regexp="@FIChatbot", content_types=types.ContentTypes.TEXT)
 async def in_group_question(message: types.Message):
     message.text = message.text.replace("@FIChatbot", "").strip()
@@ -102,7 +134,17 @@ async def process_callback_button1(query: types.CallbackQuery):
         reply_markup=None,
         parse_mode="Markdown"
     )
-    msg: types.Message = await bot.send_message(os.getenv("SUPPORT_CHAT_ID"), query.data.replace("ask_exp_", ""))
+    question_text = query.data.replace("ask_exp_", "")
+
+    msg: types.Message = await bot.send_message(support_chat_id, question_text)
+
+    await api_client.add_expert_question(ExpertQuestion(
+        question_text=question_text,
+        question_msg_id=query.message.message_id,
+        question_chat_id=query.message.chat.id,
+        expert_question_msg_id=msg.message_id,
+        expert_question_chat_id=msg.chat.id,
+    ))
 
 
 @dispatcher.callback_query_handler()
