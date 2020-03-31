@@ -1,0 +1,2 @@
+-r bot/requirements.txt
+-r web_service/requirements.txt
