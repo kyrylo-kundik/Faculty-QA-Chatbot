@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, abort
 
 from app import User, db
 
@@ -10,7 +10,16 @@ user_bp = Blueprint("user_bp", __name__)
 @user_bp.route("/add", methods=["POST"])
 def add_user():
     content = request.json
-    tg_id = content["tg_id"]
+
+    if not content:
+        abort(400)
+        return
+
+    try:
+        tg_id = content["tg_id"]
+    except KeyError:
+        abort(400)
+        return
 
     user: User = User.query.filter_by(tg_id=tg_id).first()
     if user is not None:

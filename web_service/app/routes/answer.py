@@ -13,8 +13,17 @@ def update_answer(answer_id):
         abort(404)
     else:
         content = request.json
-        answer.rating = content["rating"]
-        answer.msg_id = content["msg_id"]
+
+        if not content:
+            abort(400)
+            return
+
+        try:
+            answer.rating = content["rating"]
+            answer.msg_id = content["msg_id"]
+        except KeyError:
+            abort(400)
+            return
 
         db.session.add(answer)
         db.session.commit()

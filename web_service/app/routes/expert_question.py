@@ -9,6 +9,10 @@ expert_question_bp = Blueprint("expert_question_bp", __name__)
 def add_expert_question():
     content = request.json
 
+    if not content:
+        abort(400)
+        return
+
     try:
         exp_q = ExpertQuestion(
             question_text=content["text"],
@@ -41,6 +45,11 @@ def update_expert_question():
         return
 
     content = request.json
+
+    if not content:
+        abort(400)
+        return
+
     try:
         exp_q.expert_answer_msg_id = int(content["msg_id"])
         exp_q.expert_answer_text = content["text"]
