@@ -113,3 +113,34 @@ class KnowledgePdfContent(db.Model):
     content_page = db.Column(db.Integer, nullable=False)
     content_paragraph = db.Column(db.Integer, nullable=False)
     content = db.Column(db.String, nullable=False)
+
+
+class ExpertQuestion(db.Model):
+    __tablename__ = "expert_question"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    question_text = db.Column(db.String, nullable=False)
+    question_msg_id = db.Column(db.Integer, nullable=False)
+    expert_question_chat_id = db.Column(db.Integer, nullable=False)
+    expert_question_msg_id = db.Column(db.Integer, nullable=False)
+    expert_answer_msg_id = db.Column(db.Integer)
+    expert_answer_text = db.Column(db.String)
+
+    expert_user_fk = db.Column(db.Integer, db.ForeignKey(
+        'user.tg_id',
+    ))
+
+    @property
+    def serialize(self):
+        """Return object data in easily serializable format"""
+        return {
+            "id": self.id,
+            "question_text": self.question_text,
+            "question_msg_id": self.question_msg_id,
+            "expert_question_chat_id": self.expert_question_chat_id,
+            "expert_question_msg_id": self.expert_question_msg_id,
+            "expert_answer_msg_id": self.expert_answer_msg_id,
+            "expert_answer_text": self.expert_answer_text,
+            "expert_user_fk": self.expert_user_fk,
+        }

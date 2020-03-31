@@ -187,13 +187,14 @@ def create_app():
             ),
         }
 
-        from app.routes import main, predictor, answer, user
+        from app.routes import main, predictor, answer, user, expert_question
 
         # Register Blueprints
         app.register_blueprint(main.main_bp)
         app.register_blueprint(user.user_bp, url_prefix="/user")
         app.register_blueprint(predictor.predictor_bp, url_prefix="/predictor")
         app.register_blueprint(answer.answer_bp, url_prefix="/answer")
+        app.register_blueprint(expert_question.expert_question_bp, url_prefix="/question")
 
         logging.info("App started.")
 
