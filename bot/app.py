@@ -93,6 +93,18 @@ async def user_question(message: types.Message):
     await process_question(message)
 
 
+@dispatcher.callback_query_handler(lambda callback: callback.data.startswith("ask_exp"))
+async def process_callback_button1(query: types.CallbackQuery):
+    await bot.edit_message_text(
+        text=f"{query.message.text}\n\n_Експерти вже розбирають Ваше питання!_",
+        chat_id=query.message.chat.id,
+        message_id=query.message.message_id,
+        reply_markup=None,
+        parse_mode="Markdown"
+    )
+    msg: types.Message = await bot.send_message(os.getenv("SUPPORT_CHAT_ID"), query.data.replace("ask_exp_", ""))
+
+
 @dispatcher.callback_query_handler()
 async def rate_answer(query: types.CallbackQuery):
     callback_data = answer_cb.parse(query.data)
@@ -210,7 +222,10 @@ async def process_question(message: types.Message):
     await bot.send_message(
         message.chat.id,
         phrase_handler.get_phrase(PhraseTypes.PLEASE_RANK_PHRASE),
-        parse_mode="Markdown"
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(row_width=1).add(
+            InlineKeyboardButton("Запитати у експертів?", callback_data=f"ask_exp_{message.text}")
+        )
     )
 
 
