@@ -123,9 +123,7 @@ class ExpertQuestion(db.Model):
     question_text = db.Column(db.String, nullable=False)
     question_msg_id = db.Column(db.Integer, nullable=False)
 
-    question_user_fk = db.Column(db.Integer, db.ForeignKey(
-        'user.tg_id',
-    ), nullable=False)
+    question_chat_id = db.Column(db.Integer, nullable=False)
 
     expert_question_chat_id = db.Column(db.Integer, nullable=False)
     expert_question_msg_id = db.Column(db.Integer, nullable=False)
@@ -143,7 +141,7 @@ class ExpertQuestion(db.Model):
             "id": self.id,
             "question_text": self.question_text,
             "question_msg_id": self.question_msg_id,
-            "question_user_fk": self.question_user_fk,
+            "question_chat_id": self.question_chat_id,
             "expert_question_chat_id": self.expert_question_chat_id,
             "expert_question_msg_id": self.expert_question_msg_id,
             "expert_answer_msg_id": self.expert_answer_msg_id,

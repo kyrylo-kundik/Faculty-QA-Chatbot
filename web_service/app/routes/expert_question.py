@@ -17,7 +17,7 @@ def add_expert_question():
         exp_q = ExpertQuestion(
             question_text=content["text"],
             question_msg_id=int(content["msg_id"]),
-            question_user_fk=int(content["tg_id"]),
+            question_chat_id=int(content["chat_id"]),
             expert_question_chat_id=int(content["expert_chat_id"]),
             expert_question_msg_id=int(content["expert_msg_id"])
         )
