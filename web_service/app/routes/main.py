@@ -31,10 +31,10 @@ def perform_search():
     try:
         predictor = request.args.get("predictor")
         query = request.args.get("query")
-        msg_id = request.args.get("msg_id")
-        user_id = request.args.get("user_id")
-        chat_id = request.args.get("chat_id")
-    except KeyError:
+        msg_id = int(request.args.get("msg_id"))
+        user_id = int(request.args.get("user_id"))
+        chat_id = int(request.args.get("chat_id"))
+    except (KeyError, ValueError):
         abort(400)  # will raise an error
         return
 

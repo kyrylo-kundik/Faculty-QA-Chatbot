@@ -32,8 +32,12 @@ def add_expert_question():
 
 @expert_question_bp.route("/update", methods=["PUT"])
 def update_expert_question():
-    msg_id = request.args.get("msg_id")
-    chat_id = request.args.get("chat_id")
+    try:
+        msg_id = int(request.args.get("msg_id"))
+        chat_id = int(request.args.get("chat_id"))
+    except ValueError:
+        abort(400)
+        return
 
     exp_q: ExpertQuestion = ExpertQuestion.query.filter_by(
         expert_question_chat_id=chat_id,
