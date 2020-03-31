@@ -68,6 +68,9 @@ class IngestConnector:
 
         ids = [int(hit['_id']) for hit in search['hits']['hits']]
 
+        if len(ids) == 0:
+            return None
+
         when = []
         for i in range(len(ids)):
             when.append((ids[i], i))

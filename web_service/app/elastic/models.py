@@ -7,6 +7,9 @@ class SearchableMixin:
     def search(cls, expression):
         ids = query_index(cls.__tablename__, expression)
 
+        if len(ids) == 0:
+            return None
+
         when = []
         for i in range(len(ids)):
             when.append((ids[i], i))
