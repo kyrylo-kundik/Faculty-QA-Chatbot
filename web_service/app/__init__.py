@@ -40,11 +40,14 @@ def check_app():
 @app.cli.command("force_reseed_db", help="Will download, index all needed data to run the app.")
 @with_appcontext
 def force_reseed_db():
+    logging.info("called force reseeding db")
     db.init_app(app)
 
     # TODO force reseed database
+    logging.info("parsing PDFs")
     pdf_content = PDFExtractor(os.getenv("PDF_URL"))
 
+    logging.info("Deleting previous knowledge base from postgres")
     try:
         db.session.query(KnowledgePdfContent).delete()
         db.session.query(KnowledgeQuestion).delete()
@@ -57,6 +60,7 @@ def force_reseed_db():
     app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']])
     app.ingest_connector = IngestConnector()
 
+    logging.info("deleting elastic indices and pipelines")
     app.elasticsearch.indices.delete(index=app.ingest_connector.index_name, ignore=[400, 404])
     try:
         app.ingest_connector.delete_pipeline()
@@ -65,6 +69,7 @@ def force_reseed_db():
     finally:
         app.ingest_connector.create_pipeline()
 
+    logging.info("writing PDF content to the dbs")
     for content in pdf_content.parsed_content:
         c = KnowledgePdfContent(
             content_page=content.page_num,
@@ -81,6 +86,7 @@ def force_reseed_db():
             c.id, c.content, c.content_page, c.content_paragraph
         )
 
+    logging.info("adding ingest predictor")
     try:
         predictor = Predictor(
             name="ingest",
@@ -95,6 +101,7 @@ def force_reseed_db():
 
     qa = QAExtractor(os.getenv("QA_TXT_URL"))
 
+    logging.info("parsing QA doc")
     for qa_content in qa.parse():
         try:
             answer = KnowledgeAnswer(
@@ -114,6 +121,7 @@ def force_reseed_db():
             db.session.rollback()
             raise e
 
+    logging.info("adding qa predictors")
     try:
         predictor = Predictor(
             name="qa_question",
@@ -137,6 +145,8 @@ def force_reseed_db():
     except Exception as e:
         db.session.rollback()
         logging.warning("QA predictor has already been stored in database.", str(e))
+
+    logging.info("force reseeding finished successfully.")
 
     return app
 
