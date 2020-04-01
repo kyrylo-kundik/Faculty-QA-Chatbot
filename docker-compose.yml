@@ -15,7 +15,9 @@ services:
       API_TOKEN: $BOT_API_TOKEN
       API_HOST: $API_HOST
       API_PORT: $WEB_APP_PORT
-
+      SUPPORT_CHAT_ID: $SUPPORT_CHAT_ID
+    networks:
+      - backend
   web:
     build:
       context: ./web_service
@@ -35,12 +37,16 @@ services:
       ES_PORT: $ELASTIC_PORT
       ES_USER: $ES_USER
       ES_PASS: $ES_PASS
+      SECRET_KEY: $SECRET_KEY
+      PDF_URL: $PDF_URL
+      QA_TXT_URL: $QA_TXT_URL
     ports:
       - "$WEB_APP_HOST:$WEB_APP_PORT:$WEB_APP_PORT"
     restart: always
     networks:
       - pgnet
       - esnet
+      - backend
     links:
       - postgres
       - es01
@@ -124,3 +130,4 @@ volumes:
 networks:
   esnet:
   pgnet:
+  backend:
