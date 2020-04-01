@@ -41,6 +41,8 @@ services:
       SECRET_KEY: $SECRET_KEY
       PDF_URL: $PDF_URL
       QA_TXT_URL: $QA_TXT_URL
+    volumes:
+      - ./web_service:/app
     ports:
       - "$WEB_APP_HOST:$WEB_APP_PORT:$WEB_APP_PORT"
     restart: always

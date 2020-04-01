@@ -1,3 +1,5 @@
+import logging
+
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import NotFoundError
 from flask import Flask
@@ -5,12 +7,13 @@ from flask.cli import with_appcontext
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import SQLAlchemyError
 
 db = SQLAlchemy()
 
 app = Flask(__name__, instance_relative_config=False)
 
-gunicorn_error_handlers = app.logger.getLogger('gunicorn').handlers
+gunicorn_error_handlers = logging.getLogger('gunicorn').handlers
 app.logger.handlers.extend(gunicorn_error_handlers)
 
 app.config.from_object('app.config.DevelopmentConfig')
@@ -54,7 +57,7 @@ def force_reseed_db():
         db.session.query(KnowledgeQuestion).delete()
         db.session.query(KnowledgeAnswer).delete()
         db.session.commit()
-    except Exception as e:
+    except SQLAlchemyError as e:
         db.session.rollback()
         raise e
 
@@ -80,7 +83,7 @@ def force_reseed_db():
         try:
             db.session.add(c)
             db.session.commit()
-        except Exception as e:
+        except SQLAlchemyError as e:
             db.session.rollback()
             raise e
         app.ingest_connector.add_to_index(
@@ -96,9 +99,9 @@ def force_reseed_db():
 
         db.session.add(predictor)
         db.session.commit()
-    except Exception as e:
+    except SQLAlchemyError as e:
         db.session.rollback()
-        app.logger.warning("Ingest predictor has already been stored in db", str(e))
+        app.logger.warning(f"Ingest predictor has already been stored in db: {e.__cause__}")
 
     qa = QAExtractor(app.config["QA_TXT_URL"])
 
@@ -118,7 +121,7 @@ def force_reseed_db():
 
             db.session.add(question)
             db.session.commit()
-        except Exception as e:
+        except SQLAlchemyError as e:
             db.session.rollback()
             raise e
 
@@ -131,9 +134,9 @@ def force_reseed_db():
 
         db.session.add(predictor)
         db.session.commit()
-    except Exception as e:
+    except SQLAlchemyError as e:
         db.session.rollback()
-        app.logger.warning("QA predictor has already been stored in database.", str(e))
+        app.logger.warning(f"QA predictor has already been stored in database: {e.__cause__}")
 
     try:
         predictor = Predictor(
@@ -143,9 +146,9 @@ def force_reseed_db():
 
         db.session.add(predictor)
         db.session.commit()
-    except Exception as e:
+    except SQLAlchemyError as e:
         db.session.rollback()
-        app.logger.warning("QA predictor has already been stored in database.", str(e))
+        app.logger.warning(f"QA predictor has already been stored in database: {e.__cause__}")
 
     app.logger.info("force reseeding finished successfully.")
 
@@ -153,7 +156,7 @@ def force_reseed_db():
 
 
 def create_app():
-    app.logger.info("Setting up app.")
+    app.logger.info("Setting up app...")
     # Initialize Plugins
     db.init_app(app)
 
@@ -207,6 +210,6 @@ def create_app():
         app.register_blueprint(answer.answer_bp, url_prefix="/answer")
         app.register_blueprint(expert_question.expert_question_bp, url_prefix="/question")
 
-        app.logger.info("App started.")
+        app.logger.info("App created.")
 
         return app
