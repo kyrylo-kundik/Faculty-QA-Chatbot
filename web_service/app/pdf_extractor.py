@@ -1,10 +1,10 @@
 import collections
-import logging
 import os
 from io import StringIO
 from typing import List
 
 import requests
+from flask import current_app
 from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
@@ -39,14 +39,14 @@ class PDFExtractor:
         os.remove("tmp.pdf")
 
     def _download_file(self):
-        logging.info(f"Started downloading PDF file from {self._pdf_url}")
+        current_app.logger.info(f"Started downloading PDF file from {self._pdf_url}")
         r = requests.get(self._pdf_url, stream=True)
         chunk_loaded = 0
         with open(self._tmp_path, "wb") as handle:
             for data in r.iter_content():
                 chunk_loaded += len(data)
                 handle.write(data)
-        logging.info("Downloaded")
+        current_app.logger.info("Downloaded")
 
     def _convert_pdf_to_txt(self):
         rsrcmgr = PDFResourceManager()

@@ -22,6 +22,9 @@ class Config:
     ELASTICSEARCH_URL = f'http://{os.getenv("ES_USER")}:{os.getenv("ES_PASS")}@' \
                         f'{os.getenv("ES_HOST")}:{os.getenv("ES_PORT")}'
 
+    PDF_URL = os.getenv("PDF_URL")
+    QA_TXT_URL = os.getenv("QA_TXT_URL")
+
 
 class ProductionConfig(Config):
     DEBUG = False

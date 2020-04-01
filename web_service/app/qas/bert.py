@@ -1,13 +1,11 @@
 from __future__ import absolute_import, division, print_function
 
 import collections
-import logging
-from typing import List
 
 import torch
 from flask import current_app
-from torch.utils.data import DataLoader, SequentialSampler, TensorDataset
 from pytorch_transformers import BertConfig, BertForQuestionAnswering, BertTokenizer
+from torch.utils.data import DataLoader, SequentialSampler, TensorDataset
 
 from app.qas.utils import get_answer, input_to_squad_example, squad_examples_to_features, to_list
 
@@ -43,7 +41,7 @@ class QA:
             return {"result": self.predict(current_app.bert_context, query)}
 
         except Exception as e:
-            logging.error(str(e))
+            current_app.logger.error(str(e))
             return {"success": False}
 
     def predict(self, passage: str, question: str):
