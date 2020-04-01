@@ -18,6 +18,7 @@ services:
       SUPPORT_CHAT_ID: $SUPPORT_CHAT_ID
     networks:
       - backend
+
   web:
     build:
       context: ./web_service
