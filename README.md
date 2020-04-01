@@ -6,15 +6,15 @@ Also search feature is available as RESTful API web service.
 
 ### Stack:
 
-* [aiogram]() python telegram bot async framework with [uvloop](), [ujson](), [aiohttp[speedups]]() boosters;
-* [Flask]() python web micro-framework;
-* [Flask-Migrate]() - Flask extensions for database migrations managing and [Flask-SQLAlchemy]() - Flask ORM;
-* [pdfminer.six]() - python .pdf document parser for parsing parts of knowledge base;
-* [gunicorn]() - production WSGI HTTP server;
-* [torch]() - python ML framework. I'm using it for building [BERT]()-based ML model for question-answering system;
-* [elasticsearch]() - NoSQL database for indexing knowledge for question-answering system;
-* [ingest]() - Elasticsearch plugin for indexing file attachments. Was used for indexing knowledge base .pdf docs paragraphs;
-* [PostgreSQL]() - RDBMS for managing all bot data. 
+* [aiogram](https://aiogram.readthedocs.io/en/latest/index.html) python telegram bot async framework with [uvloop](https://uvloop.readthedocs.io/), [ujson](https://github.com/ultrajson/ultrajson), [aiohttp[speedups]](https://docs.aiohttp.org/en/stable/#installing-speedups-altogether) boosters;
+* [Flask](https://flask.palletsprojects.com/en/1.1.x/) python web micro-framework;
+* [Flask-Migrate](https://flask-migrate.readthedocs.io/en/latest/) - Flask extensions for database migrations managing and [Flask-SQLAlchemy](https://flask-sqlalchemy.palletsprojects.com/en/2.x/) - Flask ORM;
+* [pdfminer.six](https://pdfminersix.readthedocs.io/en/latest/) - python .pdf document parser for parsing parts of knowledge base;
+* [gunicorn](https://gunicorn.org/) - production WSGI HTTP server;
+* [torch](https://pytorch.org/) - python ML framework. I'm using it for building [BERT](https://github.com/google-research/bert/blob/master/multilingual.md) -based ML model for question-answering system;
+* [elasticsearch](https://www.elastic.co/) - NoSQL database for indexing knowledge for question-answering system;
+* [ingest](https://www.elastic.co/guide/en/elasticsearch/plugins/current/ingest-attachment.html) - Elasticsearch plugin for indexing file attachments. Was used for indexing knowledge base .pdf docs paragraphs;
+* [PostgreSQL](https://www.postgresql.org/) - RDBMS for managing all bot data. 
 
 #### Environment variables (put them in a file in the root of project called `.env`):
 ```.env
