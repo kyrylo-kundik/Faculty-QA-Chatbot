@@ -19,8 +19,7 @@ class Config:
                               f'{os.getenv("PG_HOST")}:{os.getenv("PG_PORT")}/{os.getenv("PG_DB")}'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    ELASTICSEARCH_URL = f'http://{os.getenv("ES_USER")}:{os.getenv("ES_PASS")}@' \
-                        f'{os.getenv("ES_HOST")}:{os.getenv("ES_PORT")}'
+    ELASTICSEARCH_URL = f'http://{os.getenv("ES_HOST")}:{os.getenv("ES_PORT")}'
 
     PDF_URL = os.getenv("PDF_URL")
     QA_TXT_URL = os.getenv("QA_TXT_URL")

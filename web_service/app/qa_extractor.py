@@ -10,15 +10,15 @@ class QAExtractor:
 
     def __init__(self, txt_url: str):
         self.txt_url = txt_url
-        self._rex_pattern = r"\n\d{1,10}\."
+        self._rex_pattern = r"\n[\t|\ ]*\d{1,10}\."
 
     def parse(self) -> List[QAContent]:
         text = requests.get(self.txt_url).text
         result = []
 
-        splitted = re.split(self._rex_pattern, text)
+        splitted = re.split(self._rex_pattern, text)[1:]
 
-        for i, split in enumerate(splitted, start=1):
+        for i, split in enumerate(splitted):
             if split == "":
                 continue
 
