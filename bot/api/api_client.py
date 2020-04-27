@@ -19,6 +19,9 @@ class ApiClient:
         )
         self._api_url = api_url
 
+    def close(self):
+        self._loop.run_until_complete(self._session.close())
+
     async def fetch(
             self,
             method: str = "/",
