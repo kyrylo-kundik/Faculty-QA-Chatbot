@@ -3,7 +3,9 @@ import logging
 import os
 import random
 import traceback
+import uuid
 
+import aioredis
 from aiogram import types
 from aiogram.dispatcher import filters
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -26,6 +28,11 @@ api_client = ApiClient(
     api_url=f"http://{os.getenv('API_HOST')}:{os.getenv('API_PORT')}",
     loop=bot.loop
 )
+
+redis = bot.loop.run_until_complete(aioredis.create_redis_pool(
+    f'redis://{os.getenv("REDIS_HOST")}:{os.getenv("REDIS_PORT")}'
+))
+
 support_chat_id = int(os.getenv("SUPPORT_CHAT_ID"))
 
 predictors = bot.loop.run_until_complete(api_client.get_all_predictors())
@@ -139,7 +146,9 @@ async def process_ask_expert_callback(query: types.CallbackQuery):
         reply_markup=None,
         parse_mode="Markdown"
     )
-    question_text = query.data.replace("ask_exp_", "")
+
+    question_uuid = query.data.replace("ask_exp_", "")
+    question_text = await redis.get(question_uuid, encoding='utf-8')
 
     msg: types.Message = await bot.send_message(support_chat_id, question_text)
 
@@ -268,16 +277,25 @@ async def process_question(message: types.Message):
         await bot_typing(bot, message.chat.id, float(random.randint(2, 4)))  # set typing status until next search done
 
     await bot_typing(bot, message.chat.id)
-    print(f"ask_exp_{message.text}")
+
+    msg_uuid = uuid.uuid4().hex
+    await redis.setex(msg_uuid, 86400, message.text)  # set expiration time to a key for 1 day (86400 secs)
+    callback_data = f"ask_exp_{msg_uuid}"
+
     await bot.send_message(
         message.chat.id,
         phrase_handler.get_phrase(PhraseTypes.PLEASE_RANK_PHRASE),
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(row_width=1).add(
-            InlineKeyboardButton("Запитати у експертів?", callback_data=f"ask_exp_{message.text}")
+            InlineKeyboardButton("Запитати у експертів?", callback_data=callback_data)
         )
     )
 
 
 if __name__ == "__main__":
-    executor.start_polling(dispatcher, skip_updates=False)
+    try:
+        executor.start_polling(dispatcher, skip_updates=False)
+    finally:
+        api_client.close()
+        redis.close()
+        asyncio.run(redis.wait_closed())

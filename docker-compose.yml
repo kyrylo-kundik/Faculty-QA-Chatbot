@@ -9,16 +9,23 @@ services:
     restart: always
     links:
       - web
+      - redis
     depends_on:
       - web
+      - redis
+    volumes:
+      - ./bot:/app
     environment:
       API_TOKEN: $BOT_API_TOKEN
       API_HOST: $API_HOST
       API_PORT: $WEB_APP_PORT
       SUPPORT_CHAT_ID: $SUPPORT_CHAT_ID
       DEBUG: $BOT_DEBUG
+      REDIS_HOST: $REDIS_HOST
+      REDIS_PORT: $REDIS_PORT
     networks:
       - backend
+      - redisnet
 
   web:
     build:
@@ -80,6 +87,22 @@ services:
     networks:
       - esnet
 
+  redis:
+    image: redis:latest
+    restart: always
+    container_name: chatbot_redis
+    volumes:
+      - ./tmp/redis-db:/data
+    ports:
+      - "$REDIS_EXTERNAL_HOST:$REDIS_EXTERNAL_PORT:$REDIS_PORT"
+    healthcheck:
+      test: ["CMD", "redis-cli","ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - redisnet
+
   postgres:
     image: postgres:9.6
     container_name: chatbot_postgres
@@ -88,7 +111,7 @@ services:
       POSTGRES_USER: $POSTGRES_USER
       POSTGRES_DB: $POSTGRES_DB
     volumes:
-      - ./tmp/db:/var/lib/postgresql/data
+      - ./tmp/pg-db:/var/lib/postgresql/data
     ports:
       - "$POSTGRES_HOST:$POSTGRES_EXTERNAL_PORT:$POSTGRES_PORT"
     restart: always
@@ -109,4 +132,5 @@ volumes:
 networks:
   esnet:
   pgnet:
+  redisnet:
   backend:
