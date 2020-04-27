@@ -111,3 +111,6 @@ dist
 *.env
 
 web_service/app/qas/model
+
+tmp
+tmp/
