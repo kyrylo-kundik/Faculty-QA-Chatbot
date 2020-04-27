@@ -47,9 +47,8 @@ def force_reseed_db():
     app.logger.info("called force reseeding db")
     db.init_app(app)
 
-    # TODO force reseed database
-    app.logger.info("parsing PDFs")
-    pdf_content = PDFExtractor(app.config["PDF_URL"])
+    # app.logger.info("parsing PDFs")
+    # pdf_content = PDFExtractor(app.config["PDF_URL"])
 
     app.logger.info("Deleting previous knowledge base from postgres")
     try:
@@ -62,47 +61,20 @@ def force_reseed_db():
         raise e
 
     app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']])
-    app.ingest_connector = IngestConnector()
+    # app.ingest_connector = IngestConnector()
 
     app.logger.info("deleting elastic indices and pipelines")
-    app.elasticsearch.indices.delete(index=app.ingest_connector.index_name, ignore=[400, 404])
+    app.elasticsearch.indices.delete(index=KnowledgeAnswer.__tablename__, ignore=[400, 404])
+    app.elasticsearch.indices.delete(index=KnowledgeQuestion.__tablename__, ignore=[400, 404])
+    # app.elasticsearch.indices.delete(index=app.ingest_connector.index_name, ignore=[400, 404])
     try:
-        app.ingest_connector.delete_pipeline()
+        pass
+        # app.ingest_connector.delete_pipeline()
     except NotFoundError:
         pass
     finally:
-        app.ingest_connector.create_pipeline()
-
-    app.logger.info("writing PDF content to the dbs")
-    for content in pdf_content.parsed_content:
-        c = KnowledgePdfContent(
-            content_page=content.page_num,
-            content_paragraph=content.paragraph_num,
-            content=content.content
-        )
-        try:
-            db.session.add(c)
-            db.session.commit()
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            raise e
-        app.ingest_connector.add_to_index(
-            c.id, c.content, c.content_page, c.content_paragraph
-        )
-
-    app.logger.info("adding ingest predictor")
-    try:
-        predictor = Predictor(
-            name="ingest",
-            description="Search based on ingest plugin for elasticsearch"
-        )
-
-        db.session.add(predictor)
-        db.session.commit()
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        app.logger.warning(f"Ingest predictor has already been stored in db: {e.__cause__}")
-
+        pass
+        # app.ingest_connector.create_pipeline()
     qa = QAExtractor(app.config["QA_TXT_URL"])
 
     app.logger.info("parsing QA doc")
@@ -138,18 +110,6 @@ def force_reseed_db():
         db.session.rollback()
         app.logger.warning(f"QA predictor has already been stored in database: {e.__cause__}")
 
-    try:
-        predictor = Predictor(
-            name="qa_answer",
-            description="Search based on Buddy QA Knowledge base with elasticsearch"
-        )
-
-        db.session.add(predictor)
-        db.session.commit()
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        app.logger.warning(f"QA predictor has already been stored in database: {e.__cause__}")
-
     app.logger.info("force reseeding finished successfully.")
 
     return app
@@ -164,7 +124,7 @@ def create_app():
         # Import parts of our application
 
         app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']])
-        app.ingest_connector = IngestConnector()
+        # app.ingest_connector = IngestConnector()
 
         # app.bert_context = requests.get(os.getenv("QA_TXT_URL")).text
 
@@ -174,9 +134,9 @@ def create_app():
             # "bert_qa": lambda query: app.bert_model.search(
             #     query=query,
             # ),
-            "ingest": lambda query: app.ingest_connector.api_search(
-                query=query,
-            ),
+            # "ingest": lambda query: app.ingest_connector.api_search(
+            #     query=query,
+            # ),
             "qa": lambda query: api_search_elastic(
                 query=query,
             ),
@@ -186,19 +146,19 @@ def create_app():
             # "bert_qa": lambda query: app.bert_model.search(
             #     query=query,
             # ),
-            "ingest": lambda query, question_id: search_ingest(
-                query=query,
-                question_id=question_id
-            ),
+            # "ingest": lambda query, question_id: search_ingest(
+            #     query=query,
+            #     question_id=question_id
+            # ),
             "qa_question": lambda query, question_id: search_elastic(
                 query=query,
                 question_id=question_id
             ),
-            "qa_answer": lambda query, question_id: search_elastic(
-                query=query,
-                question_id=question_id,
-                mode="answer"
-            ),
+            # "qa_answer": lambda query, question_id: search_elastic(
+            #     query=query,
+            #     question_id=question_id,
+            #     mode="answer"
+            # ),
         }
 
         from app.routes import main, predictor, answer, user, expert_question

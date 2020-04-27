@@ -17,6 +17,8 @@ from phrases.phrase_types import PhraseTypes
 from settings import setup_bot
 from utils import bot_typing
 
+DEBUG = int(os.getenv("DEBUG", "0")) == 1
+
 bot, dispatcher = setup_bot(os.getenv("API_TOKEN"))
 
 phrase_handler = PhraseHandler()
@@ -129,7 +131,7 @@ async def user_question(message: types.Message):
 
 
 @dispatcher.callback_query_handler(lambda callback: callback.data.startswith("ask_exp"))
-async def process_callback_button1(query: types.CallbackQuery):
+async def process_ask_expert_callback(query: types.CallbackQuery):
     await bot.edit_message_text(
         text=f"{query.message.text}\n\n_Експерти вже розбирають Ваше питання!_",
         chat_id=query.message.chat.id,
@@ -202,13 +204,13 @@ async def process_question(message: types.Message):
     question: str = message.text
     logging.info(f"Processing question from user ({message.from_user.first_name}): {question}")
 
-    await bot_typing(bot, message.chat.id, 1.0)
-
-    await bot.send_message(
-        message.chat.id,
-        phrase_handler.get_phrase(PhraseTypes.PLEASE_WAIT_PHRASE),
-        parse_mode="Markdown",
-    )
+    # await bot_typing(bot, message.chat.id, 1.0)
+    #
+    # await bot.send_message(
+    #     message.chat.id,
+    #     phrase_handler.get_phrase(PhraseTypes.PLEASE_WAIT_PHRASE),
+    #     parse_mode="Markdown",
+    # )
 
     await bot_typing(bot, message.chat.id)  # bot will have "typing" status until first search done
 
@@ -236,10 +238,13 @@ async def process_question(message: types.Message):
             continue
 
         answer.predictor = answer.predictor.replace('_', '\\_')  # due to markdown parse errors
-
+        if DEBUG:
+            answer_text = f"{answer.predictor} said:\n\n{answer.text}"
+        else:
+            answer_text = answer.text
         await bot.send_message(
             message.chat.id,
-            f"{answer.predictor} said:\n\n{answer.text}",
+            answer_text,
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(row_width=5).add(
                 InlineKeyboardButton(
@@ -263,7 +268,7 @@ async def process_question(message: types.Message):
         await bot_typing(bot, message.chat.id, float(random.randint(2, 4)))  # set typing status until next search done
 
     await bot_typing(bot, message.chat.id)
-
+    print(f"ask_exp_{message.text}")
     await bot.send_message(
         message.chat.id,
         phrase_handler.get_phrase(PhraseTypes.PLEASE_RANK_PHRASE),

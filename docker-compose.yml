@@ -16,6 +16,7 @@ services:
       API_HOST: $API_HOST
       API_PORT: $WEB_APP_PORT
       SUPPORT_CHAT_ID: $SUPPORT_CHAT_ID
+      DEBUG: $BOT_DEBUG
     networks:
       - backend
 
@@ -26,6 +27,8 @@ services:
         PORT: $WEB_APP_PORT
         HOST: "0.0.0.0"
     container_name: chatbot_web
+    volumes:
+      - ./web_service:/app
     environment:
       APP_HOST: "0.0.0.0"
       APP_PORT: $WEB_APP_PORT
@@ -36,8 +39,6 @@ services:
       PG_PASS: $POSTGRES_PASS
       ES_HOST: $ES_HOST
       ES_PORT: $ELASTIC_PORT
-      ES_USER: $ES_USER
-      ES_PASS: $ES_PASS
       SECRET_KEY: $SECRET_KEY
       PDF_URL: $PDF_URL
       QA_TXT_URL: $QA_TXT_URL
@@ -50,10 +51,10 @@ services:
       - backend
     links:
       - postgres
-      - es01
+      - es
     depends_on:
       - postgres
-      - es01
+      - es
     healthcheck:
       test: ["CMD", "curl", "-f", "http://$WEB_APP_HOST:$WEB_APP_PORT/healthCheck"]
       interval: 1m30s
@@ -61,46 +62,21 @@ services:
       retries: 3
       start_period: 40s
 
-  es01:
-    build:
-      context: ./elasticsearch
-    container_name: es01
+  es:
+    image: elasticsearch:7.0.0
+    container_name: chatbot_es
     environment:
-      - node.name=es01
-      - discovery.seed_hosts=es02
-      - cluster.initial_master_nodes=es01,es02
-      - cluster.name=docker-cluster
-      - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - discovery.type=single-node
     restart: always
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
     volumes:
-      - esdata01:/usr/share/elasticsearch/data
+      - esdata:/usr/share/elasticsearch/data
     ports:
       - "$ELASTIC_HOST:$ELASTIC_EXTERNAL_PORT:$ELASTIC_PORT"
-    networks:
-      - esnet
-
-  es02:
-    build:
-      context: ./elasticsearch
-    container_name: es02
-    environment:
-      - node.name=es02
-      - discovery.seed_hosts=es01
-      - cluster.initial_master_nodes=es01,es02
-      - cluster.name=docker-cluster
-      - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    volumes:
-      - esdata02:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl --silent --fail localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
     networks:
       - esnet
 
@@ -111,6 +87,8 @@ services:
       POSTGRES_PASSWORD: $POSTGRES_PASS
       POSTGRES_USER: $POSTGRES_USER
       POSTGRES_DB: $POSTGRES_DB
+    volumes:
+      - ./tmp/db:/var/lib/postgresql/data
     ports:
       - "$POSTGRES_HOST:$POSTGRES_EXTERNAL_PORT:$POSTGRES_PORT"
     restart: always
@@ -123,10 +101,10 @@ services:
       - pgnet
 
 volumes:
-  esdata01:
+  esdata:
     driver: local
-  esdata02:
-    driver: local
+#  esdata02:
+#    driver: local
 
 networks:
   esnet:
