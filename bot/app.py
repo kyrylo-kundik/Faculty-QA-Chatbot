@@ -98,14 +98,15 @@ async def reply_question(message: types.Message):
             return
     except AttributeError:
         return
+    user = User(
+        tg_id=message.from_user.id,
+        first_name=message.from_user.first_name,
+        username=message.from_user.username,
+    )
     try:
-        await api_client.add_user(User(
-            tg_id=message.from_user.id,
-            first_name=message.from_user.first_name,
-            username=message.from_user.username,
-        ))
+        await api_client.add_user(user)
     except ApiClientError:
-        logging.error("Got error from api_client.add_user. See the full trace in console.")
+        logging.error(f"Got error from api_client.add_user. User={user}\nSee the full trace in console.")
         traceback.print_exc()
 
     exp_q = ExpertQuestion(
@@ -118,7 +119,8 @@ async def reply_question(message: types.Message):
     try:
         exp_q = await api_client.update_expert_question(exp_q)
     except ApiClientError:
-        logging.error("Got error from api_client.update_expert_question. See the full trace in console.")
+        logging.error(f"Got error from api_client.update_expert_question. ExpertQuestion={exp_q}\n"
+                      f"See the full trace in console.")
         traceback.print_exc()
 
         return
@@ -161,16 +163,19 @@ async def process_ask_expert_callback(query: types.CallbackQuery):
 
     msg: types.Message = await bot.send_message(support_chat_id, question_text)
 
+    exp_q = ExpertQuestion(
+        question_text=question_text,
+        question_msg_id=query.message.message_id,
+        question_chat_id=query.message.chat.id,
+        expert_question_msg_id=msg.message_id,
+        expert_question_chat_id=msg.chat.id,
+    )
+
     try:
-        await api_client.add_expert_question(ExpertQuestion(
-            question_text=question_text,
-            question_msg_id=query.message.message_id,
-            question_chat_id=query.message.chat.id,
-            expert_question_msg_id=msg.message_id,
-            expert_question_chat_id=msg.chat.id,
-        ))
+        await api_client.add_expert_question(exp_q)
     except ApiClientError:
-        logging.error("Got error from api_client.add_expert_question. See the full trace in console.")
+        logging.error(f"Got error from api_client.add_expert_question. ExpertQuestion={exp_q}\n"
+                      f"See the full trace in console.")
         traceback.print_exc()
 
 
@@ -189,16 +194,19 @@ async def rate_answer(query: types.CallbackQuery):
         f"from predictor: {predictor} with rate: {rating}"
     )
 
+    answer = Answer(
+        id_=answer_id,
+        predictor=predictor,
+        rating=rating,
+        msg_id=msg_id
+    )
+
     try:
-        await api_client.update_answer(Answer(
-            id_=answer_id,
-            predictor=predictor,
-            rating=rating,
-            msg_id=msg_id
-        ))
+        await api_client.update_answer(answer)
 
     except ApiClientError:
-        logging.error("Got error from api_client.update_answer. See the full trace in console.")
+        logging.error(f"Got error from api_client.update_answer. Answer={answer}\n"
+                      f"See the full trace in console.")
         traceback.print_exc()
 
     text = query.message.text.replace(predictor.replace('\\_', '_'), predictor)
@@ -213,14 +221,17 @@ async def rate_answer(query: types.CallbackQuery):
 
 async def process_question(message: types.Message):
     logging.info(f"adding user: {message.from_user.id}")
+
+    user = User(
+        tg_id=message.from_user.id,
+        first_name=message.from_user.first_name,
+        username=message.from_user.username
+    )
+
     try:
-        await api_client.add_user(User(
-            tg_id=message.from_user.id,
-            first_name=message.from_user.first_name,
-            username=message.from_user.username
-        ))
+        await api_client.add_user(user)
     except ApiClientError:
-        logging.error("Got error from api_client.add_user. See the full trace in console.")
+        logging.error(f"Got error from api_client.add_user. User={user}\nSee the full trace in console.")
         traceback.print_exc()
 
     question: str = message.text
