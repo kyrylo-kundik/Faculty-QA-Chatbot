@@ -98,12 +98,15 @@ async def reply_question(message: types.Message):
             return
     except AttributeError:
         return
-
-    await api_client.add_user(User(
-        tg_id=message.from_user.id,
-        first_name=message.from_user.first_name,
-        username=message.from_user.username,
-    ))
+    try:
+        await api_client.add_user(User(
+            tg_id=message.from_user.id,
+            first_name=message.from_user.first_name,
+            username=message.from_user.username,
+        ))
+    except ApiClientError:
+        logging.error("Got error from api_client.add_user. See the full trace in console.")
+        traceback.print_exc()
 
     exp_q = ExpertQuestion(
         expert_question_chat_id=message.reply_to_message.chat.id,
@@ -112,15 +115,21 @@ async def reply_question(message: types.Message):
         expert_answer_text=message.text,
         expert_user_fk=message.from_user.id,
     )
+    try:
+        exp_q = await api_client.update_expert_question(exp_q)
+    except ApiClientError:
+        logging.error("Got error from api_client.update_expert_question. See the full trace in console.")
+        traceback.print_exc()
 
-    exp_q = await api_client.update_expert_question(exp_q)
+        return
 
-    await bot.send_message(
-        chat_id=exp_q.question_chat_id,
-        text=f"_Експерт каже:_\n\n{exp_q.expert_answer_text}",
-        reply_to_message_id=exp_q.question_msg_id,
-        parse_mode="Markdown",
-    )
+    if exp_q is not None:
+        await bot.send_message(
+            chat_id=exp_q.question_chat_id,
+            text=f"_Експерт каже:_\n\n{exp_q.expert_answer_text}",
+            reply_to_message_id=exp_q.question_msg_id,
+            parse_mode="Markdown",
+        )
 
 
 @dispatcher.message_handler(regexp="@FIChatbot", content_types=types.ContentTypes.TEXT)
@@ -152,13 +161,17 @@ async def process_ask_expert_callback(query: types.CallbackQuery):
 
     msg: types.Message = await bot.send_message(support_chat_id, question_text)
 
-    await api_client.add_expert_question(ExpertQuestion(
-        question_text=question_text,
-        question_msg_id=query.message.message_id,
-        question_chat_id=query.message.chat.id,
-        expert_question_msg_id=msg.message_id,
-        expert_question_chat_id=msg.chat.id,
-    ))
+    try:
+        await api_client.add_expert_question(ExpertQuestion(
+            question_text=question_text,
+            question_msg_id=query.message.message_id,
+            question_chat_id=query.message.chat.id,
+            expert_question_msg_id=msg.message_id,
+            expert_question_chat_id=msg.chat.id,
+        ))
+    except ApiClientError:
+        logging.error("Got error from api_client.add_expert_question. See the full trace in console.")
+        traceback.print_exc()
 
 
 @dispatcher.callback_query_handler()
