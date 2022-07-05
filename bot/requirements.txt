@@ -6,5 +6,5 @@ cchardet==2.1.6
 cffi==1.14.0
 pycares==3.1.1
 pycparser==2.20
-ujson==2.0.3
+ujson==5.4.0
 uvloop==0.14.0
